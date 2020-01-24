@@ -8,7 +8,7 @@ using UrlMin.Models;
 namespace UrlMin.Controllers
 {
     [Produces(MediaTypeNames.Application.Json)]
-    [Route("")]
+    [Route("api")]
     public class UrlController : MyControllerBase
     {
         private static readonly List<Url> _urlInMemoryStore = new List<Url>();
@@ -22,10 +22,12 @@ namespace UrlMin.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<Url>> GetAll() => _urlInMemoryStore;
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<List<Url>> GetAll() => Ok(_urlInMemoryStore);
 
         [HttpGet("{urlRef}")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<Url> GetByRef(string urlRef)
         {
             var url = _urlInMemoryStore.FirstOrDefault(p => p.UrlRef == urlRef);
@@ -33,12 +35,27 @@ namespace UrlMin.Controllers
             {
                 return NotFound();
             }
-            return url;
+            return Ok(url);
+        }
+
+        [HttpPatch]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult Put(Url url)
+        {
+            var originalUrl = _urlInMemoryStore.Find(item => item.UrlRef.Equals(url.UrlRef));
+            if (originalUrl == null)
+            {
+                return BadRequest("Cannot update a none existing url.");
+            } else
+            {
+                originalUrl.LongUrl = url.LongUrl;
+                return Ok();
+            }
         }
 
         [HttpPost("{longUrl}")]
         [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<Url> Create(string longUrl)
         {
             var url = new Url(longUrl);
@@ -47,8 +64,8 @@ namespace UrlMin.Controllers
         }
 
         [HttpDelete("{urlRef}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public ActionResult Delete(string urlRef)
         {
 
@@ -57,7 +74,7 @@ namespace UrlMin.Controllers
                 return NotFound();
             }
             _urlInMemoryStore.Remove(_urlInMemoryStore.FirstOrDefault(p => p.UrlRef == urlRef));
-            return Ok();
+            return NoContent();
         }
     }
 }
